@@ -1,20 +1,48 @@
-import express from 'express';
-import dotenv from 'dotenv';
+// import { PrismaClient } from '@prisma/client';
 
-// Load environment variables from .env file
-dotenv.config();
+import {prisma} from './prismaClient';
+import app from './app';
 
-const app = express();
 
-// Use PORT from environment variables or default to 5000
-const PORT = process.env.PORT || 5000;
+// const prisma = new PrismaClient();
 
-// Test endpoint to check if the API is running
-app.get('/ping', (req, res) => {
-  res.send('pong');
-});
+async function main() {
+  // Test the database connection
+  try{
+  await prisma.$connect();
+  console.log('Database connected successfully');
+  } catch (err){
+    if (err instanceof Error) {
+      console.error('Could not connect to the database');
+      console.error(err.message);
+    }
+  }
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  // Get the PORT from the environment or use a default value
+  const PORT = process.env.PORT || 5000;
+
+  // Start the server
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}
+
+async function shutdown()  {
+  console.log('\nShutting down the server...');
+  await prisma.$disconnect();
+  console.log('Prisma connection closed. Goodbye!');
+  process.exit(0);
+}
+
+
+
+// Handle graceful shutdown
+process.on('SIGINT', shutdown);
+
+process.on('SIGTERM', shutdown);
+
+// Run the main function
+main().catch((error) => {
+  console.error('Error during startup:', error);
+  process.exit(1);
 });
